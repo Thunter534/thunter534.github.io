@@ -160,8 +160,8 @@
             // Fallback: If it's an object we don't recognize, turn it into text nicely
             displayMessage = JSON.stringify(resultJson, null, 2);
           } else {
-            displayMessage = resultJson;
-          }
+  displayMessage = JSON.stringify(resultJson, null, 2);
+}
         }
 
         statusDiv.innerText = "Assessment Complete";
