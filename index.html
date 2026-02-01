@@ -5,112 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Marking Assistant</title>
   <style>
-    /* Modern Dark Theme */
-    body { 
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-      max-width: 600px; 
-      margin: 60px auto; 
-      background-color: #121212; 
-      color: #e0e0e0; 
-      line-height: 1.6;
-      padding: 20px;
-    }
-
-    h1 { 
-      color: #ffffff; 
-      font-weight: 600; 
-      margin-bottom: 30px; 
-      letter-spacing: -0.5px;
-    }
-
-    label { 
-      display: block; 
-      margin-bottom: 8px; 
-      font-size: 0.85rem; 
-      color: #999; 
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    input, select, textarea { 
-      width: 100%; 
-      margin-bottom: 24px; 
-      padding: 12px; 
-      background-color: #1e1e1e; 
-      border: 1px solid #333; 
-      border-radius: 8px; 
-      color: #fff; 
-      box-sizing: border-box; 
-      font-size: 1rem;
-      transition: all 0.2s ease;
-    }
-
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: #4a90e2;
-      background-color: #252525;
-    }
-
-    button { 
-      width: 100%;
-      background-color: #ffffff; 
-      color: #000; 
-      border: none; 
-      padding: 14px; 
-      border-radius: 8px; 
-      font-weight: 600; 
-      font-size: 1rem;
-      cursor: pointer; 
-      transition: transform 0.1s, background-color 0.2s;
-    }
-
-    button:hover { 
-      background-color: #d1d1d1; 
-    }
-
-    button:active {
-      transform: scale(0.98);
-    }
-
-    #status { 
-      margin-top: 20px; 
-      font-size: 0.9rem; 
-      color: #4a90e2; 
-      text-align: center;
-      font-weight: 500;
-      min-height: 1.2em;
-    }
-
-    #result { 
-      white-space: pre-wrap; 
-      margin-top: 25px; 
-      background: #1e1e1e; 
-      padding: 20px; 
-      border-radius: 12px; 
-      border: 1px solid #333;
-      font-family: 'Menlo', 'Monaco', monospace;
-      font-size: 0.9rem;
-      color: #ccc;
-      display: none; 
-    }
+    body { font-family: 'Inter', sans-serif; max-width: 600px; margin: 60px auto; background-color: #121212; color: #e0e0e0; line-height: 1.6; padding: 20px; }
+    h1 { color: #ffffff; margin-bottom: 30px; }
+    label { display: block; margin-bottom: 8px; font-size: 0.85rem; color: #999; text-transform: uppercase; }
+    input, select, textarea { width: 100%; margin-bottom: 24px; padding: 12px; background-color: #1e1e1e; border: 1px solid #333; border-radius: 8px; color: #fff; box-sizing: border-box; }
+    button { width: 100%; background-color: #ffffff; color: #000; border: none; padding: 14px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+    #status { margin-top: 20px; color: #4a90e2; text-align: center; }
+    #result { white-space: pre-wrap; margin-top: 25px; background: #1e1e1e; padding: 20px; border-radius: 12px; border: 1px solid #333; color: #ccc; display: none; }
   </style>
 </head>
 <body>
 
   <h1>AI Marking Assistant</h1>
-
-  <label for="assignment">Assignment Title</label>
-  <input id="assignment" placeholder="e.g. Year 10 History Essay" />
-
-  <label for="rubric">Rubric Type</label>
+  <label>Assignment Title</label>
+  <input id="assignment" />
+  <label>Rubric Type</label>
   <select id="rubric">
-    <option value="essay">Essay (Analysis & Structure)</option>
-    <option value="short_answer">Short Answer (Accuracy & Conciseness)</option>
+    <option value="essay">Essay</option>
+    <option value="short_answer">Short Answer</option>
   </select>
-
-  <label for="student_work">Student Work</label>
-  <textarea id="student_work" rows="10" placeholder="Paste student submission here..."></textarea>
-
+  <label>Student Work</label>
+  <textarea id="student_work" rows="8"></textarea>
   <button onclick="submitWork()">Submit for Assessment</button>
 
   <div id="status"></div>
@@ -120,64 +35,45 @@
   async function submitWork() {
     const statusDiv = document.getElementById("status");
     const resultDiv = document.getElementById("result");
-    
     statusDiv.innerText = "Processing assessment...";
     resultDiv.style.display = "none";
 
-    const data = {
+    const payload = {
       assignment: document.getElementById("assignment").value,
       rubric: document.getElementById("rubric").value,
       student_work: document.getElementById("student_work").value
     };
 
     try {
-      const response = await fetch(
-        "https://thunter0116.app.n8n.cloud/webhook-test/843732eb-f3ca-45c7-b841-08cd7131944c",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        }
-      );
+      const response = await fetch("https://thunter0116.app.n8n.cloud/webhook-test/843732eb-f3ca-45c7-b841-08cd7131944c", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
 
-      if (!response.ok) throw new Error("Server error");
-
-      // THE FIX IS HERE: We added 'await' before response.json()
-      const res = await response.json();
+      const rawData = await response.json();
       
-      const info = Array.isArray(res) ? res[0] : res;
+      // 1. DRILL DOWN: Access the text hidden inside the complex structure
+      // Array[0] -> content -> parts[0] -> text
+      const rawText = rawData[0].content.parts[0].text;
 
-      let report = "";
+      // 2. PARSE: The text is a JSON string, so we turn it into an object
+      const info = JSON.parse(rawText);
 
-      if (info.error) {
-        report = `❌ ERROR\n\n${info.error}\n\nACTION: ${info.action_needed}`;
-      } else if (info.analysis && info.rating) {
-        report += `OVERALL RATING: ${info.rating.overall_score} (${info.rating.overall_rating_text})\n`;
-        report += `====================================\n\n`;
-        report += `SUMMARY:\n${info.analysis.overall_feedback}\n\n`;
-        report += `DETAILED BREAKDOWN:\n`;
-        
-        info.analysis.criterion_breakdown.forEach(item => {
-          report += `\n🔸 ${item.name.toUpperCase()}\n`;
-          report += `   Level: ${item.level_achieved}\n`;
-          report += `   Feedback: ${item.feedback}\n`;
-        });
-      } else {
-        // This handles cases where Gemini sends back a direct text field
-        const textFallback = info.text || info.output || info.content || info.response;
-        report = textFallback || JSON.stringify(info, null, 2);
-      }
+      // 3. DISPLAY: Format it nicely
+      let report = `RATING: ${info.rating}\n`;
+      report += `====================================\n\n`;
+      report += `ANALYSIS:\n${info.analysis}`;
 
       statusDiv.innerText = "Assessment Complete";
       resultDiv.innerText = report;
       resultDiv.style.display = "block";
 
     } catch (error) {
-      statusDiv.innerText = "Error: Connection failed.";
+      statusDiv.innerText = "Error parsing AI response.";
       console.error(error);
     }
   }
 </script>
-
 </body>
 </html>
