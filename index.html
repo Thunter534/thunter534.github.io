@@ -69,32 +69,45 @@ async function submitWork() {
       throw new Error("Text not found in response");
     }
     
-    // Try to simplify JSON → plain text
-    let outputText = text;
+    let outputText = "";
     
     try {
       const parsed = JSON.parse(text);
     
-      // Prefer human-readable fields
-      if (parsed.message) {
-        outputText = parsed.message;
-      } else if (parsed.overall_feedback) {
-        outputText = parsed.overall_feedback;
-      } else if (parsed.summary) {
-        outputText = parsed.summary;
-      } else {
-        // Fallback: stringify nicely
-        outputText = JSON.stringify(parsed, null, 2);
+      // 1️⃣ Overall analysis
+      if (parsed.analysis) {
+        outputText += "OVERALL ANALYSIS\n";
+        outputText += "-----------------------------\n";
+        outputText += parsed.analysis + "\n\n";
+      }
+    
+      // 2️⃣ Overall rating
+      if (parsed.rating) {
+        outputText += "OVERALL RATING\n";
+        outputText += "-----------------------------\n";
+        outputText += `${parsed.rating.overall_score} / ${parsed.rating.max_score}\n`;
+        outputText += parsed.rating.feedback + "\n\n";
+      }
+    
+      // 3️⃣ Detailed rubric breakdown
+      if (Array.isArray(parsed.detailed_breakdown)) {
+        outputText += "DETAILED BREAKDOWN\n";
+        outputText += "-----------------------------\n";
+    
+        parsed.detailed_breakdown.forEach(item => {
+          outputText += `${item.criterion}: ${item.score}/${item.max_score}\n`;
+          outputText += `${item.feedback}\n\n`;
+        });
       }
     
     } catch {
-      // Not JSON → leave as plain text
+      // If anything goes wrong, fall back to raw text
       outputText = text;
     }
     
     // Display
     statusDiv.innerText = "Assessment Complete";
-    resultDiv.innerText = outputText;
+    resultDiv.innerText = outputText.trim();
     resultDiv.style.display = "block";
 
   
