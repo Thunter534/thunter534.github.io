@@ -62,17 +62,41 @@ async function submitWork() {
     // 2️⃣ Parse top-level JSON
     const data = JSON.parse(responseText);
   
-    // 3️⃣ Extract the model text (THIS matches your response)
+    // Extract the model text (already working)
     const text = data?.content?.parts?.[0]?.text;
-  
+    
     if (!text) {
       throw new Error("Text not found in response");
     }
-  
-    // 4️⃣ Display as plain text
+    
+    // Try to simplify JSON → plain text
+    let outputText = text;
+    
+    try {
+      const parsed = JSON.parse(text);
+    
+      // Prefer human-readable fields
+      if (parsed.message) {
+        outputText = parsed.message;
+      } else if (parsed.overall_feedback) {
+        outputText = parsed.overall_feedback;
+      } else if (parsed.summary) {
+        outputText = parsed.summary;
+      } else {
+        // Fallback: stringify nicely
+        outputText = JSON.stringify(parsed, null, 2);
+      }
+    
+    } catch {
+      // Not JSON → leave as plain text
+      outputText = text;
+    }
+    
+    // Display
     statusDiv.innerText = "Assessment Complete";
-    resultDiv.innerText = text;
+    resultDiv.innerText = outputText;
     resultDiv.style.display = "block";
+
   
   } catch (error) {
     statusDiv.innerText = "Error displaying assessment.";
