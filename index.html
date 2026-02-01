@@ -90,7 +90,7 @@
       font-family: 'Menlo', 'Monaco', monospace;
       font-size: 0.9rem;
       color: #ccc;
-      display: none; /* Hidden until content arrives */
+      display: none; 
     }
   </style>
 </head>
@@ -123,6 +123,7 @@
       statusDiv.innerText = "Processing assessment...";
       resultDiv.style.display = "none";
 
+      // Re-added the missing data object
       const data = {
         assignment: document.getElementById("assignment").value,
         rubric: document.getElementById("rubric").value,
@@ -141,12 +142,26 @@
 
         if (!response.ok) throw new Error("Network response was not ok");
 
-        const result = await response.text();
+        // Parse JSON from n8n/Gemini
+        const resultJson = await response.json();
+
+        let displayMessage = "";
+        
+        // Handle the specific error format you showed me
+        if (resultJson.error) {
+          displayMessage = `❌ ERROR\n\n${resultJson.error}\n\nREASON: ${resultJson.reason}\n\nACTION: ${resultJson.action_needed}`;
+        } else {
+          // If successful, try to find the text content
+          // This looks for common Gemini response keys
+          displayMessage = resultJson.text || resultJson.content || resultJson.output || JSON.stringify(resultJson, null, 2);
+        }
+
         statusDiv.innerText = "Assessment Complete";
-        resultDiv.innerText = result;
+        resultDiv.innerText = displayMessage;
         resultDiv.style.display = "block";
+
       } catch (error) {
-        statusDiv.innerText = "Error: Could not reach the marking server.";
+        statusDiv.innerText = "Error: Connection failed or response was invalid.";
         console.error(error);
       }
     }
