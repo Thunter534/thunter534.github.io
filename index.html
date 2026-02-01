@@ -55,7 +55,9 @@ async function submitWork() {
       }
     );
 
-    const rawData = await response.json();
+    const rawText = await response.text();
+    console.log("RAW RESPONSE (TEXT):", rawText);
+
 
     // ✅ SAFELY extract the text
     const text =
