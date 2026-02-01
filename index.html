@@ -116,64 +116,68 @@
   <div id="status"></div>
   <pre id="result"></pre>
 
-  <script>
-    async function submitWork() {
-      const statusDiv = document.getElementById("status");
-      const resultDiv = document.getElementById("result");
-      
-      statusDiv.innerText = "Processing assessment...";
-      resultDiv.style.display = "none";
+<script>
+  async function submitWork() {
+    const statusDiv = document.getElementById("status");
+    const resultDiv = document.getElementById("result");
+    
+    statusDiv.innerText = "Processing assessment...";
+    resultDiv.style.display = "none";
 
-      const data = {
-        assignment: document.getElementById("assignment").value,
-        rubric: document.getElementById("rubric").value,
-        student_work: document.getElementById("student_work").value
-      };
+    const data = {
+      assignment: document.getElementById("assignment").value,
+      rubric: document.getElementById("rubric").value,
+      student_work: document.getElementById("student_work").value
+    };
 
-      try {
-        const response = await fetch(
-          "https://thunter0116.app.n8n.cloud/webhook-test/843732eb-f3ca-45c7-b841-08cd7131944c",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data)
-          }
-        );
-
-        if (!response.ok) throw new Error("Server responded with an error");
-
-        const resultJson = await response.json();
-        let displayMessage = "";
-        
-        // Handle Error JSON
-        if (resultJson.error) {
-          displayMessage = `❌ ERROR\n\n${resultJson.error}\n\nREASON: ${resultJson.reason}\n\nACTION: ${resultJson.action_needed}`;
-        } 
-        // Handle Success Data
-        else {
-          // This logic drills down into the object to find the text string
-          const textContent = resultJson.text || resultJson.output || resultJson.content || resultJson.response;
-          
-          if (textContent) {
-            displayMessage = textContent;
-          } else if (typeof resultJson === 'object') {
-            // Fallback: If it's an object we don't recognize, turn it into text nicely
-            displayMessage = JSON.stringify(resultJson, null, 2);
-          } else {
-  displayMessage = JSON.stringify(resultJson, null, 2);
-}
+    try {
+      const response = await fetch(
+        "https://thunter0116.app.n8n.cloud/webhook-test/843732eb-f3ca-45c7-b841-08cd7131944c",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
         }
+      );
 
-        statusDiv.innerText = "Assessment Complete";
-        resultDiv.innerText = displayMessage;
-        resultDiv.style.display = "block";
+      if (!response.ok) throw new Error("Server error");
 
-      } catch (error) {
-        statusDiv.innerText = "Error: Connection failed.";
-        console.error(error);
+      const res = await response.json();
+      // n8n often sends an array, so we grab the first item if it is one
+      const info = Array.isArray(res) ? res[0] : res;
+
+      // START FORMATTING THE REPORT
+      let report = "";
+
+      if (info.error) {
+        report = `❌ ERROR\n\n${info.error}\n\nACTION: ${info.action_needed}`;
+      } else if (info.analysis && info.rating) {
+        // Build a beautiful structured report from the JSON you provided
+        report += `OVERALL RATING: ${info.rating.overall_score} (${info.rating.overall_rating_text})\n`;
+        report += `====================================\n\n`;
+        report += `SUMMARY:\n${info.analysis.overall_feedback}\n\n`;
+        report += `DETAILED BREAKDOWN:\n`;
+        
+        info.analysis.criterion_breakdown.forEach(item => {
+          report += `\n🔸 ${item.name.toUpperCase()}\n`;
+          report += `   Level: ${item.level_achieved}\n`;
+          report += `   Feedback: ${item.feedback}\n`;
+        });
+      } else {
+        // Fallback if the JSON structure is different
+        report = typeof info === 'string' ? info : JSON.stringify(info, null, 2);
       }
+
+      statusDiv.innerText = "Assessment Complete";
+      resultDiv.innerText = report;
+      resultDiv.style.display = "block";
+
+    } catch (error) {
+      statusDiv.innerText = "Error: Connection failed.";
+      console.error(error);
     }
-  </script>
+  }
+</script>
 
 </body>
 </html>
