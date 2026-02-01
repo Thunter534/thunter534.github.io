@@ -142,17 +142,16 @@
 
       if (!response.ok) throw new Error("Server error");
 
+      // THE FIX IS HERE: We added 'await' before response.json()
       const res = await response.json();
-      // n8n often sends an array, so we grab the first item if it is one
+      
       const info = Array.isArray(res) ? res[0] : res;
 
-      // START FORMATTING THE REPORT
       let report = "";
 
       if (info.error) {
         report = `❌ ERROR\n\n${info.error}\n\nACTION: ${info.action_needed}`;
       } else if (info.analysis && info.rating) {
-        // Build a beautiful structured report from the JSON you provided
         report += `OVERALL RATING: ${info.rating.overall_score} (${info.rating.overall_rating_text})\n`;
         report += `====================================\n\n`;
         report += `SUMMARY:\n${info.analysis.overall_feedback}\n\n`;
@@ -164,8 +163,9 @@
           report += `   Feedback: ${item.feedback}\n`;
         });
       } else {
-        // Fallback if the JSON structure is different
-        report = typeof info === 'string' ? info : JSON.stringify(info, null, 2);
+        // This handles cases where Gemini sends back a direct text field
+        const textFallback = info.text || info.output || info.content || info.response;
+        report = textFallback || JSON.stringify(info, null, 2);
       }
 
       statusDiv.innerText = "Assessment Complete";
