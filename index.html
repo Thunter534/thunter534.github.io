@@ -78,6 +78,7 @@
       color: #4a90e2; 
       text-align: center;
       font-weight: 500;
+      min-height: 1.2em;
     }
 
     #result { 
@@ -123,7 +124,6 @@
       statusDiv.innerText = "Processing assessment...";
       resultDiv.style.display = "none";
 
-      // Re-added the missing data object
       const data = {
         assignment: document.getElementById("assignment").value,
         rubric: document.getElementById("rubric").value,
@@ -140,20 +140,28 @@
           }
         );
 
-        if (!response.ok) throw new Error("Network response was not ok");
+        if (!response.ok) throw new Error("Server responded with an error");
 
-        // Parse JSON from n8n/Gemini
         const resultJson = await response.json();
-
         let displayMessage = "";
         
-        // Handle the specific error format you showed me
+        // Handle Error JSON
         if (resultJson.error) {
           displayMessage = `❌ ERROR\n\n${resultJson.error}\n\nREASON: ${resultJson.reason}\n\nACTION: ${resultJson.action_needed}`;
-        } else {
-          // If successful, try to find the text content
-          // This looks for common Gemini response keys
-          displayMessage = resultJson.text || resultJson.content || resultJson.output || JSON.stringify(resultJson, null, 2);
+        } 
+        // Handle Success Data
+        else {
+          // This logic drills down into the object to find the text string
+          const textContent = resultJson.text || resultJson.output || resultJson.content || resultJson.response;
+          
+          if (textContent) {
+            displayMessage = textContent;
+          } else if (typeof resultJson === 'object') {
+            // Fallback: If it's an object we don't recognize, turn it into text nicely
+            displayMessage = JSON.stringify(resultJson, null, 2);
+          } else {
+            displayMessage = resultJson;
+          }
         }
 
         statusDiv.innerText = "Assessment Complete";
@@ -161,7 +169,7 @@
         resultDiv.style.display = "block";
 
       } catch (error) {
-        statusDiv.innerText = "Error: Connection failed or response was invalid.";
+        statusDiv.innerText = "Error: Connection failed.";
         console.error(error);
       }
     }
