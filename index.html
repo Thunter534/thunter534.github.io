@@ -50,10 +50,10 @@ async function submitWork() {
     }
   );
 
-  const result = await response.json();
+  const result = await response.text();
   document.getElementById("status").innerText = "Done";
-  document.getElementById("result").innerText =
-    JSON.stringify(result, null, 2);
+  document.getElementById("result").innerText = result;
+
 }
 </script>
 
